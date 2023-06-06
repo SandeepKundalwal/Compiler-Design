@@ -1,0 +1,442 @@
+options {
+  JAVA_UNICODE_ESCAPE = true;
+}
+
+PARSER_BEGIN(TempNoJavaParser)
+  public class TempNoJavaParser {}
+PARSER_END(TempNoJavaParser)
+
+SKIP : /* WHITE SPACE */
+{
+  " "
+| "\t"
+| "\n"
+| "\r"
+| "\f"
+}
+
+SPECIAL_TOKEN : /* COMMENTS */
+{
+  <SINGLE_LINE_COMMENT: "//" (~["\n","\r"])* ("\n"|"\r"|"\r\n")>
+| <FORMAL_COMMENT: "/**" (~["*"])* "*" ("*" | (~["*","/"] (~["*"])* "*"))* "/">
+| <MULTI_LINE_COMMENT: "/*" (~["*"])* "*" ("*" | (~["*","/"] (~["*"])* "*"))* "/">
+}
+
+TOKEN : 
+{
+  < LPAREN: "(" >
+| < RPAREN: ")" >
+| < LSQPAREN: "[" >
+| < RSQPAREN: "]" >
+| < LBRACE: "{" >
+| < RBRACE: "}" >
+| < SEMICOLON: ";" >
+| < DOT: "." >
+| < ASSIGN: "=" >
+| < LT: "<" >
+| < PLUS: "+" >
+| < MINUS: "-" >
+| < AND : "&" >   
+| < NOT : "!" >   
+| < BOOLEAN: "boolean" >   
+| < CLASS: "class" >
+| < PACKAGE: "package" >
+| < INTERFACE: "interface" >
+| < ELSE: "else" >
+| < EXTENDS: "extends" >
+| < FALSE: "false" >
+| < IF: "if" >
+| < WHILE: "while" >
+| < FOR: "for" >
+| < INTEGER: "int" >   
+| < LENGTH: "length" >
+| < MAIN: "main" >
+| < NEW: "new" >
+| < PUBLIC: "public" >
+| < RETURN: "return" >
+| < STATIC: "static" >
+| < STRING: "String" >
+| < THIS: "this" >
+| < TRUE: "true" >
+| < PRINT: "System.out.println" >
+| < VOID: "void" >         
+| < MEMMGR: "MemMgr" >
+}
+
+TOKEN : /* LITERALS */
+{
+  < INTEGER_LITERAL: ( ["1"-"9"] (["0"-"9"])* | "0" ) >
+|
+  < STRING_LITERAL: "\"" (~["\"", "\\"] | "\\\"" | "\\\\")* "\"" >
+}
+
+TOKEN : /* IDENTIFIERS */
+{
+  < IDENTIFIER: <LETTER> (<LETTER>|<DIGIT>)* >
+|
+  < #LETTER:
+      [
+       "\u0024",
+       "\u0041"-"\u005a",
+       "\u005f",
+       "\u0061"-"\u007a",
+       "\u00c0"-"\u00d6",
+       "\u00d8"-"\u00f6",
+       "\u00f8"-"\u00ff",
+       "\u0100"-"\u1fff",
+       "\u3040"-"\u318f",
+       "\u3300"-"\u337f",
+       "\u3400"-"\u3d2d",
+       "\u4e00"-"\u9fff",
+       "\uf900"-"\ufaff"
+      ]
+  >
+|
+  < #DIGIT:
+      [
+       "\u0030"-"\u0039",
+       "\u0660"-"\u0669",
+       "\u06f0"-"\u06f9",
+       "\u0966"-"\u096f",
+       "\u09e6"-"\u09ef",
+       "\u0a66"-"\u0a6f",
+       "\u0ae6"-"\u0aef",
+       "\u0b66"-"\u0b6f",
+       "\u0be7"-"\u0bef",
+       "\u0c66"-"\u0c6f",
+       "\u0ce6"-"\u0cef",
+       "\u0d66"-"\u0d6f",
+       "\u0e50"-"\u0e59",
+       "\u0ed0"-"\u0ed9",
+       "\u1040"-"\u1049"
+      ]
+  >
+}
+
+
+/************************************
+ * The TempNoJava Grammar Starts Here *
+ ************************************/
+
+
+void Goal() :
+{}
+{
+  MainClass()
+  <EOF>
+}
+
+void MainClass() :
+{}
+{
+  "package cs502;"
+  "import static cs502.memmgr.MemMgr.*;"
+  "public" "class" Identifier() "{"
+    "public" "static" "void" "main" "(" "String" "[" "]" Identifier() ")"   
+    "{" 
+    ( LOOKAHEAD(VarDeclaration()) VarDeclaration() )* 
+      ( Statement() )*
+     "}"
+     ( FunctionDeclaration() )* 
+  "}"
+}
+
+void VarDeclaration() :  
+{}
+{ 
+  Type() Identifier() ";"      
+}
+
+void FunctionDeclaration() :  
+{}
+{
+  "public" "static" IntegerType() Identifier() 
+  "(" ( FormalParameterList() )? ")"   
+  "{" ( LOOKAHEAD(2) VarDeclaration() )* 
+      ( Statement() )* "return" SubPrimaryExpression() ";" "}"
+}
+
+void FormalParameterList() :
+{}
+{
+  FormalParameter() ( FormalParameterRest() )*
+}
+
+void FormalParameter() :
+{}
+{
+  Type() Identifier()
+}
+
+void FormalParameterRest() :
+{}
+{
+  "," FormalParameter()
+}
+
+void Type() :
+{}
+{
+  BooleanType()
+|
+  IntegerType()
+|
+  StringType()
+|
+  Identifier()     
+}
+
+void BooleanType() :
+{}
+{
+  "boolean"
+}
+
+void IntegerType() :
+{}
+{
+  "int"
+}
+
+void StringType() :
+{}
+{
+    "String"
+}
+
+void Statement() :
+{}
+{
+  Block()
+| 
+  LOOKAHEAD(2)
+  AssignmentStatement()
+|
+  LOOKAHEAD( FunctionCallStatement() )
+  FunctionCallStatement()
+|
+  IfStatement()
+|
+  WhileStatement()
+|
+  PrintStatement()
+}
+
+void Block() :
+{}
+{
+  "{" ( Statement() )* "}"
+}
+
+void AssignmentStatement() :
+{}
+{
+  Identifier() "=" Expression() ";"
+}
+
+void FunctionCallStatement() :
+{}
+{
+  Identifier() 
+  "(" ( ArgList() )? ")" ";"
+}
+
+void IfStatement() :
+{}
+{
+  "if" "(" Identifier() ")" Statement() "else" Statement() 
+}
+
+void WhileStatement() :
+{}
+{
+  "while" "(" Identifier() ")" Statement() 
+}
+
+void PrintStatement() :
+{}
+{
+  "System.out.println" "(" SubPrimaryExpression() ")" ";"
+}
+
+void Expression() :
+{}
+{
+  LOOKAHEAD( PrimaryExpression() "||" )
+  OrExpression()
+|
+  LOOKAHEAD( Identifier() "&&" )
+  AndExpression()
+|
+  LOOKAHEAD( Identifier() "<" )
+  CompareExpression()
+|
+  LOOKAHEAD( PrimaryExpression() "!=" )
+  NeqExpression()
+|
+  LOOKAHEAD( Identifier() "+" )
+  PlusExpression()
+|
+  LOOKAHEAD( Identifier() "-" )
+  MinusExpression()
+|
+  LOOKAHEAD( Identifier() "*" )
+  TimesExpression()
+|
+  LOOKAHEAD( PrimaryExpression() "/" )
+  DivExpression()
+|
+  LOOKAHEAD( MemMgrCall() )
+  MemMgrCall()
+|
+  LOOKAHEAD( FunctionCall() )
+  FunctionCall()
+| 
+  PrimaryExpression()
+}
+
+void AndExpression() :
+{} 
+{
+  SubPrimaryExpression() "&&" SubPrimaryExpression()
+}
+
+void OrExpression() :
+{} 
+{
+  SubPrimaryExpression() "||" SubPrimaryExpression()
+}
+
+void CompareExpression() :
+{} 
+{
+  SubPrimaryExpression() "<" SubPrimaryExpression()
+}
+
+void NeqExpression() :
+{} 
+{
+  SubPrimaryExpression() "!=" SubPrimaryExpression()
+}
+
+void PlusExpression() :
+{}
+{
+  SubPrimaryExpression() "+" SubPrimaryExpression()
+}
+
+void MinusExpression() :
+{}
+{
+  SubPrimaryExpression() "-" SubPrimaryExpression()
+}
+
+void TimesExpression() :
+{}
+{
+  SubPrimaryExpression() "*" SubPrimaryExpression()
+}
+
+void DivExpression() :
+{}
+{
+  SubPrimaryExpression() "/" SubPrimaryExpression()
+}
+
+void MemMgrCall() :
+{}
+{
+  "MemMgr" "." Identifier() 
+  "(" ( ArgList() )? ")"
+}
+
+void FunctionCall() :
+{}
+{
+  ( TypeCast() )?
+  Identifier() 
+  "(" ( ArgList() )? ")"
+}
+
+void ArgList() :
+{}
+{
+  SubPrimaryExpression() ( ArgRest() )*
+}
+
+void ArgRest() :
+{}
+{
+  "," SubPrimaryExpression()
+}
+
+void TypeCast() :
+{}
+{
+  "(" Type() ")"
+}
+
+void PrimaryExpression() :
+{}
+{
+  IntegerLiteral()
+|
+  TrueLiteral()
+|
+  FalseLiteral()
+|
+  Identifier()
+|   
+  NotExpression()
+}
+
+void SubPrimaryExpression() :
+{}
+{
+  IntegerLiteral()
+|
+  TrueLiteral()
+|
+  FalseLiteral()
+|
+  StringLiteral()
+|
+  Identifier()
+}
+
+void IntegerLiteral() :
+{}
+{
+  <INTEGER_LITERAL>
+}
+
+void StringLiteral() :
+{}
+{
+  <STRING_LITERAL>
+}
+
+void TrueLiteral() :
+{}
+{
+  "true"
+}
+
+void FalseLiteral() :
+{}
+{
+  "false"
+}
+
+void Identifier() :
+{}
+{
+  <IDENTIFIER>
+}
+
+void NotExpression() :
+{}
+{
+  "!" Identifier() 
+}
+

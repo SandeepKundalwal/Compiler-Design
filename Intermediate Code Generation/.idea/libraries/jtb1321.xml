@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="jtb1321">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/grammars/output/jtb132.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

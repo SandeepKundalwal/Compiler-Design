@@ -1,0 +1,522 @@
+options {
+  JAVA_UNICODE_ESCAPE = true;
+}
+
+PARSER_BEGIN(FriendTJ)
+  public class FriendTJ {}
+PARSER_END(FriendTJ)
+
+SKIP : /* WHITE SPACE */
+{
+  " "
+| "\t"
+| "\n"
+| "\r"
+| "\f"
+}
+
+TOKEN : 
+{
+  < REGLIMIT: "/*" <INTEGER_LITERAL> "*/" >
+}
+
+SPECIAL_TOKEN : /* COMMENTS */
+{
+  <SINGLE_LINE_COMMENT: "//" (~["\n","\r"])* ("\n"|"\r"|"\r\n")>
+| <FORMAL_COMMENT: "/**" (~["*"])* "*" ("*" | (~["*","/"] (~["*"])* "*"))* "/">
+}
+
+TOKEN : 
+{
+  < LPAREN: "(" >
+| < RPAREN: ")" >
+| < LSQPAREN: "[" >
+| < RSQPAREN: "]" >
+| < LBRACE: "{" >
+| < RBRACE: "}" >
+| < SEMICOLON: ";" >
+| < DOT: "." >
+| < ASSIGN: "=" >
+| < LT: "<" >
+| < PLUS: "+" >
+| < MINUS: "-" >
+| < AND : "&" >   
+| < NOT : "!" >   
+| < BOOLEAN: "boolean" >   
+| < CLASS: "class" >
+| < INTERFACE: "interface" >
+| < ELSE: "else" >
+| < EXTENDS: "extends" >
+| < FALSE: "false" >
+| < IF: "if" >
+| < WHILE: "while" >
+| < FOR: "for" >
+| < INTEGER: "int" >   
+| < LENGTH: "length" >
+| < MAIN: "main" >
+| < NEW: "new" >
+| < PUBLIC: "public" >
+| < RETURN: "return" >
+| < STATIC: "static" >
+| < STRING: "String" >
+| < THIS: "this" >
+| < TRUE: "true" >
+| < PRINT: "System.out.println" >
+| < SCOMMENT1: "/*" >
+| < SCOMMENT2: "*/" >
+| < LIVENESSQUERY: "PRINTLIVEVARIABLES" >
+| < VOID: "void" >
+}
+
+TOKEN : /* LITERALS */
+{
+  < INTEGER_LITERAL: ( ["1"-"9"] (["0"-"9"])* | "0" ) >
+| < FLOAT_LITERAL: <INTEGER_LITERAL> <DOT> ( (["0"-"9"])* ["1"-"9"] ) >
+}
+
+TOKEN : /* IDENTIFIERS */
+{
+  < IDENTIFIER: <LETTER> (<LETTER>|<DIGIT>)* >
+|
+  < #LETTER:
+      [
+       "\u0024",
+       "\u0041"-"\u005a",
+       "\u005f",
+       "\u0061"-"\u007a",
+       "\u00c0"-"\u00d6",
+       "\u00d8"-"\u00f6",
+       "\u00f8"-"\u00ff",
+       "\u0100"-"\u1fff",
+       "\u3040"-"\u318f",
+       "\u3300"-"\u337f",
+       "\u3400"-"\u3d2d",
+       "\u4e00"-"\u9fff",
+       "\uf900"-"\ufaff"
+      ]
+  >
+|
+  < #DIGIT:
+      [
+       "\u0030"-"\u0039",
+       "\u0660"-"\u0669",
+       "\u06f0"-"\u06f9",
+       "\u0966"-"\u096f",
+       "\u09e6"-"\u09ef",
+       "\u0a66"-"\u0a6f",
+       "\u0ae6"-"\u0aef",
+       "\u0b66"-"\u0b6f",
+       "\u0be7"-"\u0bef",
+       "\u0c66"-"\u0c6f",
+       "\u0ce6"-"\u0cef",
+       "\u0d66"-"\u0d6f",
+       "\u0e50"-"\u0e59",
+       "\u0ed0"-"\u0ed9",
+       "\u1040"-"\u1049"
+      ]
+  >
+}
+
+
+/***********************************
+ * The PoohTJ Grammar Starts Here *
+ ***********************************/
+
+
+void Goal() :
+{}
+{
+  <REGLIMIT>
+  MainClass()
+  ( TypeDeclaration() )*
+  <EOF>
+}
+
+void MainClass() :
+{}
+{
+  "class" Identifier() "{"
+    "public" "static" "void" "main" "(" "String" "[" "]" Identifier() ")"   
+    "{" 
+    ( LOOKAHEAD(VarDeclaration()) VarDeclaration() )* 
+      ( Statement() )*
+     "}"
+  "}"
+}
+
+void TypeDeclaration() :  
+{}
+{ 
+  LOOKAHEAD(3)
+  ClassDeclaration()
+|
+  ClassExtendsDeclaration()
+}
+
+void ClassDeclaration() :
+{}
+{
+  "class" Identifier() "{" ( VarDeclaration() )* 
+                           ( MethodDeclaration() )* 
+                       "}"
+}
+
+void ClassExtendsDeclaration() :
+{}
+{
+  "class" Identifier() "extends" Identifier()
+                       "{" ( VarDeclaration() )* 
+                           ( MethodDeclaration() )* 
+                       "}"
+}
+
+void VarDeclaration() :  
+{}
+{ 
+  Type() Identifier() ";"      
+}
+
+void MethodDeclaration() :  
+{}
+{
+  "public" Type() Identifier() 
+  "(" ( FormalParameterList() )? ")"   
+  "{" ( LOOKAHEAD(2) VarDeclaration() )* 
+      ( Statement() )* "return" Identifier() ";" "}"
+}
+
+void FormalParameterList() :
+{}
+{
+  FormalParameter() ( FormalParameterRest() )*
+}
+
+void FormalParameter() :
+{}
+{
+  Type() Identifier()
+}
+
+void FormalParameterRest() :
+{}
+{
+  "," FormalParameter()
+}
+
+void Type() :
+{}
+{
+  LOOKAHEAD(3)
+  ArrayType()
+|
+  BooleanType()
+|
+  IntegerType()
+|
+  FloatType()
+|
+  Identifier()     
+}
+
+void ArrayType() :
+{}
+{
+  "int" "[" "]"
+}
+
+void FloatType() :
+{}
+{
+  "float"
+}
+
+void BooleanType() :
+{}
+{
+  "boolean"
+}
+
+void IntegerType() :
+{}
+{
+  "int"
+}
+
+void Statement() :
+{}
+{
+  Block()
+| 
+  LOOKAHEAD(2)
+  AssignmentStatement()
+|
+  LOOKAHEAD(2)
+  ArrayAssignmentStatement()
+|
+  LOOKAHEAD(2)
+  FieldAssignmentStatement()
+|
+  IfStatement()
+|
+  WhileStatement()
+|
+  PrintStatement()
+|
+  LivenessQueryStatement()
+}
+
+void Block() :
+{}
+{
+  "{" ( Statement() )* "}"
+}
+
+void AssignmentStatement() :
+{}
+{
+  Identifier() "=" Expression() ";"
+}
+
+void ArrayAssignmentStatement() :
+{}
+{
+  Identifier() "[" Identifier() "]" "=" Identifier() ";"
+}
+
+void FieldAssignmentStatement() :
+{}
+{
+  Identifier() "." Identifier()  "=" Identifier() ";"
+}
+
+void IfStatement() :
+{}
+{
+  LOOKAHEAD(IfthenElseStatement()) IfthenElseStatement()
+  | IfthenStatement()
+}
+void IfthenStatement() :
+{}
+{
+  "if" "(" Identifier() ")" Statement()
+}
+void IfthenElseStatement() :
+{}
+{
+  "if" "(" Identifier() ")" Statement() "else" Statement()
+}
+
+void WhileStatement() :
+{}
+{
+  "while" "(" Identifier() ")" Statement() 
+}
+
+void PrintStatement() :
+{}
+{
+  "System.out.println" "(" Identifier() ")" ";"
+}
+
+void LivenessQueryStatement() :
+{}
+{
+  <SCOMMENT1> <LIVENESSQUERY> <SCOMMENT2>
+}
+
+void Expression() :
+{}
+{
+  LOOKAHEAD( Identifier() "||" )
+  OrExpression()
+|
+  LOOKAHEAD( Identifier() "&&" )
+  AndExpression()
+|
+  LOOKAHEAD( Identifier() "<=" )
+  CompareExpression()
+|
+  LOOKAHEAD( Identifier() "!=" )
+  neqExpression()
+|
+  LOOKAHEAD( Identifier() "+" )
+  PlusExpression()
+|
+  LOOKAHEAD( Identifier() "-" )
+  MinusExpression()
+|
+  LOOKAHEAD( Identifier() "*" )
+  TimesExpression()
+|
+  LOOKAHEAD( Identifier() "/" )
+  DivExpression()
+|
+  LOOKAHEAD( Identifier() "[" )
+  ArrayLookup()
+|
+  LOOKAHEAD( Identifier() "." "length" )
+  ArrayLength()
+|
+  LOOKAHEAD( MessageSend() )
+  MessageSend()
+| 
+  PrimaryExpression()
+}
+
+void AndExpression() :
+{} 
+{
+  Identifier() "&&" Identifier()
+}
+
+void OrExpression() :
+{} 
+{
+  Identifier() "||" Identifier()
+}
+
+void CompareExpression() :
+{} 
+{
+  Identifier() "<=" Identifier()
+}
+
+void neqExpression() :
+{} 
+{
+  Identifier() "!=" Identifier()
+}
+
+void PlusExpression() :
+{}
+{
+  Identifier() "+" Identifier()
+}
+
+void MinusExpression() :
+{}
+{
+  Identifier() "-" Identifier()
+}
+
+void TimesExpression() :
+{}
+{
+  Identifier() "*" Identifier()
+}
+
+void DivExpression() :
+{}
+{
+  Identifier() "/" Identifier()
+}
+
+void ArrayLookup() :
+{}
+{
+  Identifier() "[" Identifier() "]"
+}
+
+void ArrayLength() :
+{}
+{
+  Identifier() "." "length"
+}
+
+void MessageSend() :
+{}
+{
+  Identifier() "." Identifier() 
+  "(" ( ArgList() )? ")"
+}
+
+void ArgList() :
+{}
+{
+  Identifier() ( ArgRest() )*
+}
+
+void ArgRest() :
+{}
+{
+  "," Identifier()
+}
+
+void PrimaryExpression() :
+{}
+{
+  IntegerLiteral()
+|
+  FloatLiteral()
+|
+  TrueLiteral()
+|
+  FalseLiteral()
+|
+  Identifier()
+|
+  ThisExpression()
+|
+  LOOKAHEAD(3)
+  ArrayAllocationExpression()
+|
+  AllocationExpression()
+|   
+  NotExpression()
+}
+
+void IntegerLiteral() :
+{}
+{
+  <INTEGER_LITERAL>
+}
+
+void FloatLiteral() :
+{}
+{
+  <FLOAT_LITERAL>
+}
+
+
+void TrueLiteral() :
+{}
+{
+  "true"
+}
+
+void FalseLiteral() :
+{}
+{
+  "false"
+}
+
+void Identifier() :
+{}
+{
+  <IDENTIFIER>
+}
+
+void ThisExpression() :
+{}
+{
+  "this"
+}
+
+void ArrayAllocationExpression() :
+{}
+{
+  "new" "int" "[" Identifier() "]"
+}
+
+void AllocationExpression() :
+{}
+{
+  "new" Identifier() "(" ")"
+}
+
+void NotExpression() :
+{}
+{
+  "!" Identifier() 
+}
+
