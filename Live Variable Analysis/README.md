@@ -17,7 +17,7 @@ may use:
 
 ### Public Testcase
 
-![image](https://github.com/SKundawal/Live-Variable-Analysis/assets/61798659/6aefe8ba-b8f8-498b-ad4d-77c2e2bbfbac)
+![image](https://github.com/SKundawal/Compiler-Design/assets/61798659/b40cbd82-f7e9-40d9-a3e2-236bf1545ecb)
 
 ### Notes:
 There are some general notes and assumptions that you can make regarding the test cases.
